@@ -1,6 +1,7 @@
 PNGS:=$(wildcard *.png)
 INCLUDES:=$(PNGS:.png=.rle.h)
-OUTPUT:=rle_icons.h
+OUT_DIR:=../firmware
+OUTPUT:=$(OUT_DIR)/icons.h
 
 all: $(OUTPUT)
 

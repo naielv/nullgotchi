@@ -1,5 +1,6 @@
 INPUT:=font.png
-OUTPUT:=$(INPUT:.png=.h)
+OUT_DIR:=../firmware
+OUTPUT:=$(OUT_DIR)/$(INPUT:.png=.h)
 
 all: $(OUTPUT)
 
@@ -8,7 +9,7 @@ clean:
 
 .PHONY: all clean
 
-%.h: %.dat
+$(OUT_DIR)/%.h: %.dat
 	xxd -i "$<" | sed -e 's/unsigned char/const PROGMEM byte/' >"$@"
 
 %.dat: %.png
