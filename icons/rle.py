@@ -8,9 +8,10 @@ Usage:
 Each icon is run length encoded and saved with the extension replaced with
 ".rle".
 
-The format is the row width encoded as one byte followed by one-byte runs.  The
+The format is the height encoded as one byte followed by one-byte runs.  The
 MSB of the byte encodes the pixel value and the LSB encodes the length of the
-run. Runs may not straddle rows.
+run. Runs may not straddle columns. Pixels are traversed from the top left to
+bottom right in column major order.
 
 """
 import itertools
@@ -29,8 +30,8 @@ def main():
         out_bytes = [im.width]
 
         data = np.asarray(Image.open(icon_fn).convert('L'))
-        for row in data:
-            for pix, run in itertools.groupby(row, lambda x: x):
+        for col in data.T:
+            for pix, run in itertools.groupby(col, lambda x: x):
                 run_len = len(list(run))
                 while run_len > 0:
                     run_len_to_write = min(run_len, 127)
