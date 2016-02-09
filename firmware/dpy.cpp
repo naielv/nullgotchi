@@ -137,16 +137,18 @@ void dpy_set_memory_mode(dpy_memory_mode_t mode) {
   dpy_command(mode);
 }
 
-void dpy_clear(byte val) {
-  dpy_set_column_address(0, 127);
-  dpy_set_page_address(0, 7);
+void dpy_clear_rect(byte start_col, byte end_col,
+                    byte start_page, byte end_page, byte val)
+{
+  dpy_set_column_address(start_col, end_col);
+  dpy_set_page_address(start_page, end_page);
   dpy_set_memory_mode(DPY_MEM_MODE_HORIZONTAL);
+  unsigned int n_bytes = (1+(int)(end_col-start_col)) *
+    (1+(int)(end_page-start_page));
 
   dpy_begin(DATA);
-  for(int page=0; page<8; ++page) {
-    for(int col=0; col<128; ++col) {
-      dpy_transfer(val);
-    }
+  for(int i=0; i<n_bytes; ++i) {
+    dpy_transfer(val);
   }
   dpy_end();
 }

@@ -14,7 +14,10 @@ void dpy_data(byte value);
 void dpy_init();
 void dpy_set_column_start_address(byte addr);
 void dpy_set_memory_mode(dpy_memory_mode_t mode);
-void dpy_clear(byte val = 0x0);
+
+void dpy_clear_rect(byte start_col, byte end_col,
+                    byte start_page, byte end_page, byte val = 0x0);
+inline void dpy_clear(byte val = 0x0) { dpy_clear_rect(0, 127, 0, 7); }
 
 // Icons
 #define dpy_draw_rle_icon(icon_name, col, page) \
