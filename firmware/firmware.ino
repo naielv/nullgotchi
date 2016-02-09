@@ -1,46 +1,118 @@
-#include <avr/pgmspace.h>
+#include "DebouncedSwitch/debounced_switch.h"
+#include "EdgeTrigger/edge_trigger.h"
 
-#include "font.h"
+#include "dpy.h"
 #include "icons.h"
+#include "pins.h"
 
-void draw_icon_real__(PGM_VOID_P icon_data, unsigned int icon_len,
-                      byte column, byte row)
-{
-  byte height = pgm_read_byte_near(icon_data);
-  byte sum = 0;
-  for(unsigned int i=1; i<icon_len; ++i) {
-    byte run = pgm_read_byte_near(icon_data + i);
-    digitalWrite(3, (run & 0x2) ? HIGH : LOW);
-    delay(30);
+DebouncedSwitch select_switch, action_switch;
+EdgeTrigger select_trigger, action_trigger;
+
+enum MenuState {
+  STATUS,
+  ENTERTAIN,
+  FEED,
+  WASH,
+  SLEEP,
+  WAKE,
+};
+
+MenuState menu_state = STATUS;
+
+void setup() {
+  digitalWrite(PIN_CS, HIGH);
+  digitalWrite(PIN_CLK, LOW);
+  digitalWrite(PIN_MOSI, LOW);
+  digitalWrite(PIN_DC, LOW);
+
+  pinMode(PIN_CLK, OUTPUT);
+  pinMode(PIN_MOSI, OUTPUT);
+  pinMode(PIN_CS, OUTPUT);
+  pinMode(PIN_DC, OUTPUT);
+  pinMode(PIN_ANALOG_IN, INPUT);
+
+  dpy_init();
+  dpy_clear();
+  update_display();
+}
+
+void loop() {
+  // Buttons
+  int button_val = analogRead(PIN_ANALOG_IN);
+  select_switch.poll(button_val <= 0x100);
+  action_switch.poll((button_val <= 0x300) && (button_val > 0x100));
+  select_trigger.update(select_switch.state());
+  action_trigger.update(action_switch.state());
+
+  if(action_trigger.triggered()) {
+    on_action();
+  }
+
+  select_trigger.clear();
+  action_trigger.clear();
+}
+
+void update_display() {
+  switch(menu_state) {
+    case STATUS:
+      dpy_clear();
+      dpy_draw_tall_text("STATUS", 10, 2);
+      break;
+    case ENTERTAIN:
+      dpy_clear();
+      dpy_draw_rle_icon(archers_rle, 0, 0);
+      dpy_draw_tall_text("Listen", 64+32-6*4, 1);
+      dpy_draw_tall_text("to The", 64+32-6*4, 3);
+      dpy_draw_tall_text("Archers", 64+32-7*4, 5);
+      break;
+    case FEED:
+      dpy_clear();
+      dpy_draw_rle_icon(cake_rle, 0, 0);
+      dpy_draw_tall_text("Eat 5", 64+32-5*4, 1);
+      dpy_draw_tall_text("slices", 64+32-6*4, 3);
+      dpy_draw_tall_text("of cake", 64+32-7*4, 5);
+      break;
+    case WASH:
+      dpy_clear();
+      dpy_draw_tall_text("WASH", 10, 2);
+      break;
+    case SLEEP:
+      dpy_clear();
+      dpy_draw_tall_text("SLEEP", 10, 2);
+      break;
+    case WAKE:
+      dpy_clear();
+      dpy_draw_tall_text("WAKE", 10, 2);
+      break;
   }
 }
 
-#define draw_icon(name, column, page) \
-  draw_icon_real__(name, name##_len, column, page)
+void on_action() {
+  MenuState new_state;
 
-// the setup function runs once when you press reset or power the board
-void setup() {
-  // initialize digital pin 3 as an output.
-  pinMode(3, OUTPUT);
-}
+  switch(menu_state) {
+    case STATUS:
+      new_state = ENTERTAIN;
+      break;
+    case ENTERTAIN:
+      new_state = FEED;
+      break;
+    case FEED:
+      new_state = WASH;
+      break;
+    case WASH:
+      new_state = SLEEP;
+      break;
+    case SLEEP:
+      new_state = WAKE;
+      break;
+    case WAKE:
+      new_state = STATUS;
+      break;
+  }
 
-// the loop function runs over and over again forever
-void loop() {
-  draw_icon(breakup_rle, 0, 0);
-  draw_icon(hygiene_level_rle, 0, 0);
-  draw_icon(bath_rle, 0, 0);
-  draw_icon(archers_rle, 0, 0);
-  draw_icon(cake_rle, 0, 0);
-  draw_icon(happy_rle, 0, 0);
-  draw_icon(rest_level_rle, 0, 0);
-  draw_icon(crying_rle, 0, 0);
-  draw_icon(sleep_rle, 0, 0);
-  draw_icon(entertain_level_rle, 0, 0);
-  draw_icon(wake_with_tea_rle, 0, 0);
-  draw_icon(sad_rle, 0, 0);
-  draw_icon(food_level_rle, 0, 0);
-
-  for(unsigned int i=0; i<font_dat_len; ++i) {
-    digitalWrite(3, (pgm_read_byte_near(font_dat + i) & 0x2) ? HIGH : LOW);
+  if(new_state != menu_state) {
+    menu_state = new_state;
+    update_display();
   }
 }

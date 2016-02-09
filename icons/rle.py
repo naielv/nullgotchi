@@ -27,7 +27,7 @@ def main():
         im = Image.open(icon_fn).convert('L')
         assert im.width < 256
         assert im.height < 256
-        out_bytes = [im.width]
+        out_bytes = [im.height]
 
         data = np.asarray(Image.open(icon_fn).convert('L'))
         for col in data.T:
