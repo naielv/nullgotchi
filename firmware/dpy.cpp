@@ -127,6 +127,14 @@ void dpy_init() {
   dpy_command(DPY_DISPLAYON);//--turn on oled panel
 }
 
+void dpy_off() {
+  dpy_command(DPY_DISPLAYOFF);
+}
+
+void dpy_on() {
+  dpy_command(DPY_DISPLAYON);
+}
+
 void dpy_set_column_start_address(byte addr) {
   dpy_command(DPY_SETLOWCOLUMN + (addr & 0xf));
   dpy_command(DPY_SETHIGHCOLUMN + ((addr >> 4) & 0xf));

@@ -6,8 +6,8 @@
 
 #include "font.h"
 
-#define USE_SOFTWARE_SPI 0
-#define USE_TINY_SPI 1
+#define USE_SOFTWARE_SPI 1
+#define USE_TINY_SPI 0
 
 #if USE_TINY_SPI
 #include "tinySPI.h"
@@ -65,6 +65,7 @@ void dpy_init() {
   SPI.setDataMode(SPI_MODE0);
 #endif
 
+#if 1
   // Init sequence for 128x64 OLED module
   dpy_command(DPY_DISPLAYOFF);                    // 0xAE
   dpy_command(DPY_SETDISPLAYCLOCKDIV);            // 0xD5
@@ -90,6 +91,18 @@ void dpy_init() {
   dpy_command(0x40);
   dpy_command(DPY_DISPLAYALLON_RESUME);           // 0xA4
   dpy_command(DPY_NORMALDISPLAY);                 // 0xA6
+#endif
+
+#if 0
+  byte seq[] = {
+    0xA8, 0x3F, 0xD3, 0x00, 0x40, 0xA0, 0xC0, 0xDA, 0x02,
+    0x81, 0x7F, 0xA4, 0xA6, 0xD5, 0x80, 0x8D, 0x14, 0xAF
+  };
+  int n_seq = sizeof(seq) / sizeof(seq[0]);
+  for(int i=0; i<n_seq; ++i) {
+    dpy_command(seq[i]);
+  }
+#endif
 
   dpy_clear();
   dpy_command(DPY_DISPLAYON);//--turn on oled panel

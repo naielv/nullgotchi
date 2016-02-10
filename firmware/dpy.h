@@ -32,3 +32,7 @@ void dpy_draw_tall_text(const char* text, unsigned int column,
 
 void dpy_draw_progress(unsigned int column, unsigned int page,
                        unsigned int width, unsigned int filled);
+
+void dpy_off();
+
+void dpy_on();

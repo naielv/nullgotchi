@@ -1,3 +1,6 @@
+#include <avr/sleep.h>
+#include <avr/interrupt.h>
+
 #include "DebouncedSwitch/debounced_switch.h"
 #include "EdgeTrigger/edge_trigger.h"
 
@@ -9,11 +12,11 @@ DebouncedSwitch select_switch, action_switch;
 EdgeTrigger select_trigger, action_trigger;
 
 const byte MAX_STAT = 64-8;
-const int TICK_DELTA = 5000;
+const int TICK_DELTA = 5000, SLEEP_DELTA = 20000;
 
 byte hygiene, rest, food, entertainment;
 
-unsigned long next_tick;
+unsigned long next_tick, next_sleep;
 
 enum WakeState {
   WS_SLEEPING,
@@ -29,6 +32,7 @@ enum MenuState {
   SLEEP,
   WAKE,
   RESET,
+  DEVICE_SLEEP,
 };
 
 MenuState menu_state;
@@ -49,6 +53,7 @@ void setup() {
   dpy_init();
   dpy_clear();
 
+  next_sleep = millis() + SLEEP_DELTA;
   reset();
   tick();
   update_display();
@@ -57,17 +62,19 @@ void setup() {
 void loop() {
   // Buttons
   int button_val = analogRead(PIN_ANALOG_IN);
-  select_switch.poll(button_val <= 0x100);
-  action_switch.poll((button_val <= 0x300) && (button_val > 0x100));
+  select_switch.poll((button_val <= 0x300) && (button_val > 0x100));
+  action_switch.poll(button_val <= 0x100);
   select_trigger.update(select_switch.state());
   action_trigger.update(action_switch.state());
 
   if(action_trigger.triggered()) {
     on_action();
+    next_sleep = millis() + SLEEP_DELTA;
   }
 
   if(select_trigger.triggered()) {
     on_select();
+    next_sleep = millis() + SLEEP_DELTA;
   }
 
   select_trigger.clear();
@@ -81,6 +88,15 @@ void loop() {
     } else {
       next_tick = millis() + TICK_DELTA;
     }
+  }
+
+  // Sleep
+  if(millis() >= next_sleep) {
+    dpy_off();
+    menu_state = DEVICE_SLEEP;
+    sleep();
+    dpy_on();
+    next_sleep = millis() + SLEEP_DELTA;
   }
 }
 
@@ -208,10 +224,10 @@ void draw_status_display() {
       } else if(min_stat == food) {
         dpy_draw_tall_text("HUNGRY", 64+32-6*4, 1);
       } else if(min_stat == rest) {
-        dpy_draw_tall_text("Zzz?!", 64+32-6*4, 1);
+        dpy_draw_tall_text("Zzz?", 64+32-4*4, 1);
       } else if(min_stat == entertainment) {
         dpy_draw_text("I'm so", 64+32-6*4, 1);
-        dpy_draw_text("bored", 64+32-5*4, 1);
+        dpy_draw_text("bored", 64+32-5*4, 2);
       }
       break;
     case WS_LEFT:
@@ -315,10 +331,36 @@ void on_action() {
     case RESET:
       new_state = STATUS;
       break;
+    case DEVICE_SLEEP:
+      new_state = STATUS;
+      break;
   }
 
   if(new_state != menu_state) {
     menu_state = new_state;
     update_display();
   }
+}
+
+
+void sleep() {
+    GIMSK |= _BV(PCIE);                     // Enable Pin Change Interrupts
+    PCMSK |= _BV(PCINT4);                   // Use PB4 as interrupt pin
+    ADCSRA &= ~_BV(ADEN);                   // ADC off
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);    // replaces above statement
+
+    sleep_enable();                         // Sets the Sleep Enable bit in the MCUCR Register (SE BIT)
+    sei();                                  // Enable interrupts
+    sleep_cpu();                            // sleep
+
+    cli();                                  // Disable interrupts
+    PCMSK &= ~_BV(PCINT4);                  // Turn off PB4 as interrupt pin
+    sleep_disable();                        // Clear SE bit
+    ADCSRA |= _BV(ADEN);                    // ADC on
+
+    sei();                                  // Enable interrupts
+    } // sleep
+
+ISR(PCINT0_vect) {
+    // This is called when the interrupt occurs, but I don't need to do anything in it
 }
