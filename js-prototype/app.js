@@ -10,9 +10,6 @@ $(document).ready(function() {
 
     if(status === "SLEEPING") {
       mood = "DREAMING";
-    } else if(minVal === 0) {
-      mood = "LEFT";
-      status = "DEAD";
     } else if((hygiene === minVal) && (hygiene < 50)) {
       mood = "DIRTY";
     } else if((rest === minVal) && (rest < 50)) {
